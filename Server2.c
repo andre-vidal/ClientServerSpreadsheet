@@ -8,19 +8,22 @@
 #include "Assignment1.c"
 
 #define BUF_SIZE	1024
-#define LISTEN_PORT	60005
+#define LISTEN_PORT	60007
 
 int main(int argc, char *argv[]){
     int			sock_recv;
     struct sockaddr_in	my_addr;
     struct sockaddr_in  remote_addr;
-    int			i;
+    int			i, x, count = 0;
     fd_set	    readfds,active_fd_set,read_fd_set;
     struct      timeval		timeout={0,0};
     int			incoming_len;
     int			recv_msg_size;
     char	    buf[BUF_SIZE];
     int			select_ret;
+    //char        **clients = malloc(5*sizeof(char*));
+    int         *clients = malloc(5*sizeof(int));    
+    int         current = 0;    
 
     int         send_len,bytes_sent;
 
@@ -59,6 +62,12 @@ int main(int argc, char *argv[]){
     FD_ZERO(&readfds);		/* zero out socket set */
     FD_SET(sock_recv,&readfds);	/* add socket to listen to */
     openWorksheet(grid);
+
+    /*Instantiate the a queue for the clients starts with 5
+    for (x = 0; x < 5; x++){
+        clients[x] = malloc(16*sizeof(char));
+    }*/
+
     /* listen ... */
     while (1){
                 
@@ -82,19 +91,42 @@ int main(int argc, char *argv[]){
         if (select_ret > 0){/* anything arrive on any socket? */
             incoming_len=sizeof(remote_addr);/* who sent to us? */
             recv_msg_size=recvfrom(sock_recv,buf,BUF_SIZE,0,(struct sockaddr *)&remote_addr,&incoming_len);
-
+            
             if (recv_msg_size > 0){	/* what was sent? */
                 buf[recv_msg_size]='\0';
-                printf("From %s received: %s\n",inet_ntoa(remote_addr.sin_addr),buf);
+                /*if(strlen(current) > 0){
+                    if(count < 5 && strcmp(current, remote_addr) != 0){
+                        clients[count] = remote_addr;
+                        count++;
+                        printf("Added to queue : %s\n", remote_addr);
+                    }
+                }*/                    
+                printf("From %s received: %s\n",inet_ntoa(remote_addr.sin_addr),buf);                
+                if(current != select_ret){
+                    if(count < 5){
+                        clients[count] = select_ret;
+                    }else{
+                        //Make Space for one more
+                    } 
+                    count++;
+                    printf("Added to queue : %s\n", remote_addr);
+                }else{
+                    if(current == 0)
+                        current = select_ret;
+                    printf("Accepted\n");
+                }                                  
             }
         }
 
         send_len=strlen("RECIEVED BY SERVER");
         bytes_sent=sendto(sock_recv, "RECIEVED BY SERVER", send_len, 0,(struct sockaddr *) &remote_addr, sizeof(remote_addr));
         
-
-        if (strcmp(buf,"shutdown") == 0)
+        if(strcmp(buf, "finish")){
+            //empty current
+            //pop from begining
+        }else if (strcmp(buf,"shutdown") == 0){
             break;
+        }
 
 		choice = (int)strtol(buf,(char**)NULL,10);
 		switch(choice){
