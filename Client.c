@@ -16,20 +16,23 @@ int main(int argc, char *argv[]){
     char text[80],buf[BUF_SIZE];
     int	send_len,bytes_sent;
 
-        /* create socket for sending data */
+    int bytes_received;
+    char buf2[BUF_SIZE];
+
+    /* create socket for sending data */
     sock_send=socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (sock_send < 0){
         printf("socket() failed\n");
         exit(0);
     }
 
-        /* create socket address structure to connect to */
+    /* create socket address structure to connect to */
     memset(&addr_send, 0, sizeof (addr_send)); /* zero out structure */
     addr_send.sin_family = AF_INET; /* address family */
     addr_send.sin_addr.s_addr = inet_addr(SERVER_IP);
     addr_send.sin_port = htons((unsigned short)SERVER_PORT);
 
-        /* connect to the server */
+    /* connect to the server */
     i=connect(sock_send, (struct sockaddr *) &addr_send, sizeof (addr_send));
     if (i < 0){
         printf("connect() failed\n");
@@ -38,14 +41,21 @@ int main(int argc, char *argv[]){
 
     while (1){
         /* send some data */
-        printf("Send? ");
+        printf("Message  : ");
         scanf("%s",text);
-        if (strcmp(text,"quit") == 0)
-            break;
 
+        //SEND REQUEST TO SERVER
         strcpy(buf,text);
         send_len=strlen(text);
         bytes_sent=send(sock_send,buf,send_len,0);
+
+        //ACCEPT RESPONSE FROM SERVER
+        bytes_received=recv(sock_send,buf2,BUF_SIZE,0);
+        buf2[bytes_received]=0;
+        printf("%s\n",buf2);
+
+        if (strcmp(text,"quit") == 0)
+            break;
     }
 
     close(sock_send);
