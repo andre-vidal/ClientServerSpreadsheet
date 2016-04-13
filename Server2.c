@@ -109,7 +109,7 @@ int main(int argc, char *argv[]){
                         //Make Space for one more
                     } 
                     count++;
-                    printf("Added to queue : %s\n", remote_addr);
+                    printf("Added to queue : %d\n", select_ret);
                 }else{
                     if(current == 0)
                         current = select_ret;
