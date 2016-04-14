@@ -1,7 +1,7 @@
 /*
 Author : Andre Vidal
 ID num : 620077449
-Assignment : 1
+Assignment : 1 Part 2
 */
 
 #include <stdio.h>
@@ -26,6 +26,7 @@ struct cell{
 //Function Declarations
 struct cell* Initialize(struct cell grid[COL][ROW],struct cell *current,char input[100]);
 void DisplayGrid(struct cell grid[COL][ROW]);
+char * stringGrid(struct cell grid[COL][ROW]);
 void DisplayMenu();
 struct cell SelectCell(struct cell grid[COL][ROW]);
 struct cell* FindCell(struct cell grid[COL][ROW],char column,int row);
@@ -99,7 +100,7 @@ struct cell* Initialize(struct cell grid[COL][ROW], struct cell *current, char i
 
 void DisplayGrid(struct cell grid[COL][ROW]){
 	int i,j;
-
+	
 	//display the spreadsheet
 	printf("\n\n    A       B       C       D       E       F       G       H       I   \n");
 	printf(" _______ _______ _______ _______ _______ _______ _______ _______ _______\n");
@@ -119,13 +120,41 @@ void DisplayGrid(struct cell grid[COL][ROW]){
 	}	
 }
 
+char * stringGrid(struct cell grid[COL][ROW]){
+	int i,j;
+	char temp[100];
+	char *table = (char *) malloc(2000);
+
+	strcpy(table,"\n    A       B       C       D       E       F       G       H       I   \n");
+	strcat(table," _______ _______ _______ _______ _______ _______ _______ _______ _______\n");
+	for(i=0;i<COL;i++){
+		strcat(table,"|\t|\t|\t|\t|\t|\t|\t|\t|\t|\n");
+		for(j=0;j<ROW;j++){
+			if(grid[j][i].type == 0){
+				if(strlen(grid[j][i].text)>6)
+					sprintf(table,"%s|%.3s...\t",table,grid[j][i].text);
+				else
+					sprintf(table,"%s|%.6s\t",table,grid[j][i].text);
+			}
+			if(grid[j][i].type == 1){
+				if(grid[j][i].value > 99999)
+					sprintf(table,"%s| #####\t",table);
+				else
+					sprintf(table,"%s|%.2d\t",table,grid[j][i].value);
+			}
+		}
+		sprintf(table,"%s|   %d\n|_______|_______|_______|_______|_______|_______|_______|_______|_______|\n",table,i+1);
+	
+	}	
+	return table;
+}
+
 void DisplayMenu(){
 	printf("\n[1] Select Cell");
 	printf("\n[2] Input Data (Note: Formulas are of form SUM,AVG or RNG)");
 	printf("\n[3] Save");
 	printf("\nChoice: ");
 }
-
 /*
 struct cell SelectCell(struct cell grid[COL][ROW]){
 	struct cell temp;
@@ -148,7 +177,7 @@ struct cell* FindCell(struct cell grid[COL][ROW],char column,int row){
 				return &grid[i][j];
 		}
 	}
-	return &temp;
+	//return &temp;
 }
 
 void AcceptInput(struct cell grid[COL][ROW],char column,int row,char input[100]){

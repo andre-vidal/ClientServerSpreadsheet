@@ -1,3 +1,9 @@
+/*
+Author : Andre Vidal
+ID num : 620077449
+Assignment : 1 Part 2
+*/
+
 #include <stdio.h>
 #include <sys/types.h>	/* system type defintions */
 #include <sys/socket.h>	/* network system functions */
@@ -7,8 +13,8 @@
 #include <arpa/inet.h>
 #include "Assignment1.c"
 
-#define BUF_SIZE	1024
-#define LISTEN_PORT	60005
+#define BUF_SIZE	2000
+#define LISTEN_PORT	60010
 
 int main(int argc, char *argv[]){
     int			sock_recv;
@@ -19,7 +25,7 @@ int main(int argc, char *argv[]){
     struct      timeval		timeout={0,0};
     int			incoming_len;
     int			recv_msg_size;
-    char	    buf[BUF_SIZE];
+    char	    buf[BUF_SIZE],response[BUF_SIZE],curr[BUF_SIZE];
     int			select_ret;
 
     int         send_len,bytes_sent;
@@ -64,68 +70,107 @@ int main(int argc, char *argv[]){
                 
         col = ((int)currCell.col)-65;//current column in grid
         row = currCell.row-1;//current row in grid
-
+/*
         system("clear");
 
         //display the current cell and its contents
-        printf("\nCURRENT CELL: \t%c%d\nCONTENT : \t",currCell.col,currCell.row);
-
-        if(grid[col][row].type == 0){printf("%s",grid[col][row].text);}
-        if(grid[col][row].type == 1){printf("%d",grid[col][row].value);}
-
+        
         DisplayGrid(grid);
         DisplayMenu();
+*/
+
+        sprintf(curr,"\nCURRENT CELL: \t%c%d\nCONTENT : \t",currCell.col,currCell.row);
+
+        if(grid[col][row].type == 0){sprintf(curr,"%s%s",curr,grid[col][row].text);}
+        if(grid[col][row].type == 1){sprintf(curr,"%s%d",curr,grid[col][row].value);}
 
         read_fd_set = active_fd_set;
         select_ret=select(sock_recv+1,&readfds,NULL,NULL,NULL);
 
-        if (select_ret > 0){/* anything arrive on any socket? */
+        if (select_ret > 0){/* anything arrive on any socket? */        
+            
             incoming_len=sizeof(remote_addr);/* who sent to us? */
             recv_msg_size=recvfrom(sock_recv,buf,BUF_SIZE,0,(struct sockaddr *)&remote_addr,&incoming_len);
 
             if (recv_msg_size > 0){	/* what was sent? */
                 buf[recv_msg_size]='\0';
-                printf("From %s received: %s\n",inet_ntoa(remote_addr.sin_addr),buf);
+                printf("<Message from Client %s> %s\n",inet_ntoa(remote_addr.sin_addr),buf);
             }
         }
 
-        send_len=strlen("RECIEVED BY SERVER");
-        bytes_sent=sendto(sock_recv, "RECIEVED BY SERVER", send_len, 0,(struct sockaddr *) &remote_addr, sizeof(remote_addr));
+
+        choice = (int)strtol(buf,(char**)NULL,10);
+
+        if(strcmp(buf,"???")==0){
+           //printf("Sending Options to %s",inet_ntoa(remote_addr.sin_addr));
+            strcpy(response,"\n<--SERVER OPTIONS-->\n[1] Select Cell\n[2] Input Data\n[3] Display Sheet\n[4] Save Sheet");
+        }else if(strcmp(buf,"shutdown")==0){
+            //printf("Sending Shutdown message to %s",inet_ntoa(remote_addr.sin_addr));
+            strcpy(response,"...SERVER SHUTTING DOWN...");
+        }else{
+            switch(choice){
+                case 1:strcpy(response,"Enter cell name [eg. B4]:");
+                       //printf("Sending \"Select cell\" prompt to %s",inet_ntoa(remote_addr.sin_addr));break;
+                case 2:strcpy(response,"[RAW INPUT - just type data]\n [KEYWORDS - SUM , AVG , RNG]\n [FORMATTING - eg. SUM(A1:A4)]\n Enter data: ");
+                       //printf("Sending \"Input Data\" prompt to %s",inet_ntoa(remote_addr.sin_addr));break;
+                case 3:strcpy(response,stringGrid(grid));
+                       strcat(response,curr);break;
+                case 4:strcpy(response,"...SHEET SAVED...");
+                       //printf("Sending \"Saved Sheet\" Notification to %s",inet_ntoa(remote_addr.sin_addr));break;
+                default:break;
+            }
+        } 
+
+        send_len=strlen(response);
+        bytes_sent=sendto(sock_recv,response, send_len, 0,(struct sockaddr *) &remote_addr, sizeof(remote_addr));          
         
-
-        if (strcmp(buf,"shutdown") == 0)
-            break;
-
-		choice = (int)strtol(buf,(char**)NULL,10);
 		switch(choice){
-			case 1: //send prompt to client - printf("\nChoose a cell: ");
+			case 1: //Receive cell name from client
                     read_fd_set = active_fd_set;
                     select_ret=select(sock_recv+1,&readfds,NULL,NULL,NULL);
                     incoming_len=sizeof(remote_addr);/* who sent to us? */
                     recv_msg_size=recvfrom(sock_recv,cellname,BUF_SIZE,0,(struct sockaddr *)&remote_addr,&incoming_len);/*recieve here*/
                     cellname[recv_msg_size]='\0';/*clear end of string*/
-                    
-                    send_len=strlen("RECIEVED BY SERVER");
-                    bytes_sent=sendto(sock_recv, "RECIEVED BY SERVER", send_len, 0,(struct sockaddr *) &remote_addr, sizeof(remote_addr));
-        
+                    printf("<Message from Client %s> %s\n",inet_ntoa(remote_addr.sin_addr),cellname);
+
+                    //Select the cell
                     currCell = *FindCell(grid,toupper(cellname[0]),(int)cellname[1]-48);
+
+                    //send message back to client
+                    strcat(cellname," Selected");
+                    send_len=strlen(cellname);
+                    bytes_sent=sendto(sock_recv, cellname, send_len, 0,(struct sockaddr *) &remote_addr, sizeof(remote_addr));
+        
                     break;
-			case 2: //AcceptInput(grid,currCell.col,currCell.row,input);
-                    //send prompt to client - printf("Input Data: ");
+
+			case 2: 
                     read_fd_set = active_fd_set;
                     select_ret=select(sock_recv+1,&readfds,NULL,NULL,NULL);
                     incoming_len=sizeof(remote_addr);/* who sent to us? */
                     recv_msg_size=recvfrom(sock_recv,input,BUF_SIZE,0,(struct sockaddr *)&remote_addr,&incoming_len);/*recieve here*/
                     input[recv_msg_size]='\0';/*clear end of string*/
-                    
-                    send_len=strlen("RECIEVED BY SERVER");
-                    bytes_sent=sendto(sock_recv, "RECIEVED BY SERVER", send_len, 0,(struct sockaddr *) &remote_addr, sizeof(remote_addr));
+                    printf("<Message from Client %s> %s\n",inet_ntoa(remote_addr.sin_addr),input);
+                    //accept input into cell                
+                    TestInput(grid,currCell.col,currCell.row,input);
+
+                    //send message back to client
+                    strcat(input," Accepted");
+                    send_len=strlen(input);
+                    bytes_sent=sendto(sock_recv, input, send_len, 0,(struct sockaddr *) &remote_addr, sizeof(remote_addr));
         
-                    TestInput(grid,currCell.col,currCell.row,input);//have function to check for the type of input enteredbreak;
-			case 3: saveWorksheet(grid);
+                    break;
+
+			case 3: //printf("%s",stringGrid(grid));
+                    break;
+            case 4: saveWorksheet(grid);
                     break;
 			default : break;
 		}
+
+        if (strcmp(buf,"shutdown") == 0){
+
+            break;
+        }
     }
 
     close(sock_recv);

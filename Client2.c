@@ -1,3 +1,9 @@
+/*
+Author : Andre Vidal
+ID num : 620077449
+Assignment : 1 Part 2
+*/
+
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -7,9 +13,9 @@
 #include <arpa/inet.h>
 
 
-#define BUF_SIZE	1024
+#define BUF_SIZE	2000
 #define SERVER_IP	"127.0.0.1"
-#define	SERVER_PORT	60005
+#define	SERVER_PORT	60010
 
 int main(int argc, char *argv[]){
     int			sock_send;
@@ -44,34 +50,39 @@ int main(int argc, char *argv[]){
     FD_ZERO(&readfds);      /* zero out socket set */
     FD_SET(sock_send,&readfds); /* add socket to listen to */
 
+    printf("\n<Send \"???\" to see server options>\n<Send \"shutdown\" to shutdown server>\n<Send \"quit\" to close client>\n\n");
+
     while(1){
-        printf("Send? ");
+
+        printf(">> ");
         scanf("%s",text);
 
         strcpy(buf,text);
-        send_len=strlen(text);
-        bytes_sent=sendto(sock_send, buf, send_len, 0,(struct sockaddr *) &addr_send, sizeof(addr_send));
-        
-        if (strcmp(text,"quit") == 0)
+
+        if (strcmp(buf,"quit") == 0){
             break;
-        }
-
-        //RESPONSE FROM SERVER
-        read_fd_set = active_fd_set;
-        select_ret=select(sock_send+1,&readfds,NULL,NULL,NULL);
-
-
-        if (select_ret > 0){/* anything arrive on any socket? */
-            incoming_len=sizeof(server_addr);/* who sent to us? */
-            recv_msg_size=recvfrom(sock_send,response,BUF_SIZE,0,(struct sockaddr *)&server_addr,&incoming_len);
-
-            if (recv_msg_size > 0){ /* what was sent? */
-                response[recv_msg_size]='\0';
-                printf("From %s received: %s\n",inet_ntoa(server_addr.sin_addr),response);
-            }
-        }
         
-       
+        }else{
 
+            send_len=strlen(text);
+            bytes_sent=sendto(sock_send, buf, send_len, 0,(struct sockaddr *) &addr_send, sizeof(addr_send));
+              
+
+            //RESPONSE FROM SERVER
+            read_fd_set = active_fd_set;
+            select_ret=select(sock_send+1,&readfds,NULL,NULL,NULL);
+
+
+            if (select_ret > 0){/* anything arrive on any socket? */
+                incoming_len=sizeof(server_addr);/* who sent to us? */
+                recv_msg_size=recvfrom(sock_send,response,BUF_SIZE,0,(struct sockaddr *)&server_addr,&incoming_len);
+
+                if (recv_msg_size > 0){ /* what was sent? */
+                    response[recv_msg_size]='\0';
+                    printf("\n<Received from Server %s> \n %s\n\n",inet_ntoa(server_addr.sin_addr),response);
+                }
+            }   
+        }   
+    }
     close(sock_send);
 }
