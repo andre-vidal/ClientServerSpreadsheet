@@ -21,9 +21,8 @@ int main(int argc, char *argv[]){
     int			recv_msg_size;
     char	    buf[BUF_SIZE];
     int			select_ret;
-    //char        **clients = malloc(5*sizeof(char*));
-    int         *clients = malloc(5*sizeof(int));    
-    int         current = 0;    
+    char        **clients = malloc(5*sizeof(char*));
+    char        *current;   
 
     int         send_len,bytes_sent;
 
@@ -63,10 +62,10 @@ int main(int argc, char *argv[]){
     FD_SET(sock_recv,&readfds);	/* add socket to listen to */
     openWorksheet(grid);
 
-    /*Instantiate the a queue for the clients starts with 5
+    //Instantiate the queue for the clients. Starts with 5 spaces
     for (x = 0; x < 5; x++){
         clients[x] = malloc(16*sizeof(char));
-    }*/
+    }
 
     /* listen ... */
     while (1){
@@ -93,27 +92,27 @@ int main(int argc, char *argv[]){
             recv_msg_size=recvfrom(sock_recv,buf,BUF_SIZE,0,(struct sockaddr *)&remote_addr,&incoming_len);
             
             if (recv_msg_size > 0){	/* what was sent? */
-                buf[recv_msg_size]='\0';
-                /*if(strlen(current) > 0){
-                    if(count < 5 && strcmp(current, remote_addr) != 0){
-                        clients[count] = remote_addr;
-                        count++;
-                        printf("Added to queue : %s\n", remote_addr);
-                    }
-                }*/                    
-                printf("From %s received: %s\n",inet_ntoa(remote_addr.sin_addr),buf);                
-                if(current != select_ret){
+                buf[recv_msg_size]='\0';                    
+                //printf("From %s received: %s\n",inet_ntoa(remote_addr.sin_addr),buf);  
+                
+                if(current != NULL){
+                    current = inet_ntoa(remote_addr.sin_addr);
+                    printf("Current set to %s\n", inet_ntoa(remote_addr.sin_addr));
+                }
+    
+                //printf("Current is %d while addr is  %s\n", current, inet_ntoa(remote_addr.sin_addr));                
+                
+                if(strcmp(current, inet_ntoa(remote_addr.sin_addr)) != 0){
                     if(count < 5){
-                        clients[count] = select_ret;
+                        clients[count - 1] = inet_ntoa(remote_addr.sin_addr);
                     }else{
                         //Make Space for one more
                     } 
                     count++;
-                    printf("Added to queue : %d\n", select_ret);
+                    printf("Added to queue : %s at position : %d\n", inet_ntoa(remote_addr.sin_addr), count - 1);
                 }else{
-                    if(current == 0)
-                        current = select_ret;
                     printf("Accepted\n");
+                    printf("From %s received: %s\n",inet_ntoa(remote_addr.sin_addr),buf);
                 }                                  
             }
         }
@@ -124,6 +123,7 @@ int main(int argc, char *argv[]){
         if(strcmp(buf, "finish")){
             //empty current
             //pop from begining
+            //save
         }else if (strcmp(buf,"shutdown") == 0){
             break;
         }

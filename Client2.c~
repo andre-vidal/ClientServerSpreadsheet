@@ -9,7 +9,7 @@
 
 #define BUF_SIZE	1024
 #define SERVER_IP	"127.0.0.1"
-#define	SERVER_PORT	60007
+#define	SERVER_PORT	60005
 
 int main(int argc, char *argv[]){
     int			sock_send;
@@ -59,14 +59,14 @@ int main(int argc, char *argv[]){
         //RESPONSE FROM SERVER
         read_fd_set = active_fd_set;
         select_ret=select(sock_send+1,&readfds,NULL,NULL,NULL);
-        
+
 
         if (select_ret > 0){/* anything arrive on any socket? */
             incoming_len=sizeof(server_addr);/* who sent to us? */
-            recv_msg_size=recvfrom(sock_send,response,BUF_SIZE,0,(struct sockaddr *)&server_addr,&incoming_len);            
+            recv_msg_size=recvfrom(sock_send,response,BUF_SIZE,0,(struct sockaddr *)&server_addr,&incoming_len);
 
             if (recv_msg_size > 0){ /* what was sent? */
-                response[recv_msg_size]='\0';     
+                response[recv_msg_size]='\0';
                 printf("From %s received: %s\n",inet_ntoa(server_addr.sin_addr),response);
             }
         }
