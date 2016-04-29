@@ -1,6 +1,6 @@
 /*
-Author : Andre Vidal
-ID num : 620077449
+Author : Andre Vidal, Xavier Bryson
+ID num : 620077449, 62008423
 Assignment : 1 Part 2
 */
 

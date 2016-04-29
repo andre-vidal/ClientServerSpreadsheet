@@ -1,6 +1,6 @@
 /*
-Author : Andre Vidal
-ID num : 620077449
+Author : Andre Vidal, Xavier Bryson
+ID num : 620077449, 620084236
 Assignment : 1 Part 2
 */
 
@@ -27,6 +27,11 @@ int main(int argc, char *argv[]){
     int			recv_msg_size;
     char	    buf[BUF_SIZE],response[BUF_SIZE],curr[BUF_SIZE];
     int			select_ret;
+
+    //Queuing Clients
+    char        **clients = malloc(5*sizeof(char*));
+    char        *current;
+    int         x, count, cur = 0;  
 
     int         send_len,bytes_sent;
 
@@ -62,6 +67,12 @@ int main(int argc, char *argv[]){
         exit(0);
     }
 
+    //Instantiate the queue for the clients. Starts with 5 spaces
+    for (x = 0; x < 5; x++){
+        clients[x] = (char *) malloc(16*sizeof(char));
+        strcpy(clients[x], "123.4.5.6"); 
+    }
+
     FD_ZERO(&readfds);		/* zero out socket set */
     FD_SET(sock_recv,&readfds);	/* add socket to listen to */
     openWorksheet(grid);
@@ -78,6 +89,7 @@ int main(int argc, char *argv[]){
         DisplayGrid(grid);
         DisplayMenu();
 */
+        
 
         sprintf(curr,"\nCURRENT CELL: \t%c%d\nCONTENT : \t",currCell.col,currCell.row);
 
@@ -94,43 +106,70 @@ int main(int argc, char *argv[]){
 
             if (recv_msg_size > 0){	/* what was sent? */
                 buf[recv_msg_size]='\0';
-                printf("<Message from Client %s> %s\n",inet_ntoa(remote_addr.sin_addr),buf);
+                
+                if(current == NULL){
+                    current = inet_ntoa(remote_addr.sin_addr);
+                    printf("Current set to %s\n", inet_ntoa(remote_addr.sin_addr));
+                }
+                
+                //printf("Current is %d while addr is  %s\n", current, inet_ntoa(remote_addr.sin_addr));                
+                
+                if(strcmp(current, inet_ntoa(remote_addr.sin_addr)) != 0){
+                    if(count < 5){
+                        clients[count - 1] = inet_ntoa(remote_addr.sin_addr);
+                        count++;
+                        printf("Added to queue : %s at position : %d\n", inet_ntoa(remote_addr.sin_addr), count - 1);
+                    }else{
+                        printf("Maximum Capacity Reached.\n");
+                    } 
+                }else{
+                    printf("Accepted\n");
+                    printf("From %s received: %s\n",inet_ntoa(remote_addr.sin_addr),buf);
+                }
             }
         }
 
 
         choice = (int)strtol(buf,(char**)NULL,10);
-
-        if(strcmp(buf,"???")==0){
-           //printf("Sending Options to %s",inet_ntoa(remote_addr.sin_addr));
-            strcpy(response,"\n<--SERVER OPTIONS-->\n[1] Select Cell\n[2] Input Data\n[3] Display Sheet\n[4] Save Sheet");
-        }else if(strcmp(buf,"shutdown")==0){
-            //printf("Sending Shutdown message to %s",inet_ntoa(remote_addr.sin_addr));
-            strcpy(response,"...SERVER SHUTTING DOWN...");
-        }else{
-            switch(choice){
-                case 1:strcpy(response,"Enter cell name [eg. B4]:");
-                       //printf("Sending \"Select cell\" prompt to %s",inet_ntoa(remote_addr.sin_addr));break;
-                case 2:strcpy(response,"[RAW INPUT - just type data]\n [KEYWORDS - SUM , AVG , RNG]\n [FORMATTING - eg. SUM(A1:A4)]\n Enter data: ");
-                       //printf("Sending \"Input Data\" prompt to %s",inet_ntoa(remote_addr.sin_addr));break;
-                case 3:strcpy(response,stringGrid(grid));
-                       strcat(response,curr);break;
-                case 4:strcpy(response,"...SHEET SAVED...");
-                       //printf("Sending \"Saved Sheet\" Notification to %s",inet_ntoa(remote_addr.sin_addr));break;
-                default:break;
+           
+        if(strcmp(current, inet_ntoa(remote_addr.sin_addr)) == 0){
+            if(strcmp(buf,"???")==0){
+               //printf("Sending Options to %s",inet_ntoa(remote_addr.sin_addr));
+                strcpy(response,"\n<--SERVER OPTIONS-->\n[1] Select Cell\n[2] Input Data\n[3] Display Sheet\n[4] Save Sheet & Finish");
+            }else{
+                switch(choice){
+                    case 1:strcpy(response,"Enter cell name [eg. B4]:");
+                           //printf("Sending \"Select cell\" prompt to %s",inet_ntoa(remote_addr.sin_addr));break;
+                    case 2:strcpy(response,"[RAW INPUT - just type data]\n [KEYWORDS - SUM , AVG , RNG]\n [FORMATTING - eg. SUM(A1:A4)]\n Enter data: ");
+                           //printf("Sending \"Input Data\" prompt to %s",inet_ntoa(remote_addr.sin_addr));break;
+                    case 3:strcpy(response,stringGrid(grid));
+                           strcat(response,curr);break;
+                    case 4:strcpy(response,"...SHEET SAVED...");
+                           //printf("Sending \"Saved Sheet\" Notification to %s",inet_ntoa(remote_addr.sin_addr));break;
+                    default:break;
+                }
             }
-        } 
+        }else{
+            if(count < 5){
+                strcpy(response,"Server in use, you have been queued.");
+            }else{
+                strcpy(response,"Sorry Queue is Full.");
+            }    
+        }
 
         send_len=strlen(response);
         bytes_sent=sendto(sock_recv,response, send_len, 0,(struct sockaddr *) &remote_addr, sizeof(remote_addr));          
         
 		switch(choice){
 			case 1: //Receive cell name from client
-                    read_fd_set = active_fd_set;
-                    select_ret=select(sock_recv+1,&readfds,NULL,NULL,NULL);
-                    incoming_len=sizeof(remote_addr);/* who sent to us? */
-                    recv_msg_size=recvfrom(sock_recv,cellname,BUF_SIZE,0,(struct sockaddr *)&remote_addr,&incoming_len);/*recieve here*/
-                    cellname[recv_msg_size]='\0';/*clear end of string*/
+                    do{
+                        read_fd_set = active_fd_set;
+                        select_ret=select(sock_recv+1,&readfds,NULL,NULL,NULL);
+                        incoming_len=sizeof(remote_addr);/* who sent to us? */
+                        recv_msg_size=recvfrom(sock_recv,cellname,BUF_SIZE,0,(struct sockaddr *)&remote_addr,&incoming_len);/*recieve here*/
+                        cellname[recv_msg_size]='\0';/*clear end of string*/
+                    }while(strcmp(current, inet_ntoa(remote_addr.sin_addr)) != 0);
+    
                     printf("<Message from Client %s> %s\n",inet_ntoa(remote_addr.sin_addr),cellname);
 
                     //Select the cell
@@ -144,11 +183,14 @@ int main(int argc, char *argv[]){
                     break;
 
 			case 2: 
-                    read_fd_set = active_fd_set;
-                    select_ret=select(sock_recv+1,&readfds,NULL,NULL,NULL);
-                    incoming_len=sizeof(remote_addr);/* who sent to us? */
-                    recv_msg_size=recvfrom(sock_recv,input,BUF_SIZE,0,(struct sockaddr *)&remote_addr,&incoming_len);/*recieve here*/
-                    input[recv_msg_size]='\0';/*clear end of string*/
+                    do{
+                        read_fd_set = active_fd_set;
+                        select_ret=select(sock_recv+1,&readfds,NULL,NULL,NULL);
+                        incoming_len=sizeof(remote_addr);/* who sent to us? */
+                        recv_msg_size=recvfrom(sock_recv,input,BUF_SIZE,0,(struct sockaddr *)&remote_addr,&incoming_len);/*recieve here*/
+                        input[recv_msg_size]='\0';/*clear end of string*/
+                    }while(strcmp(current, inet_ntoa(remote_addr.sin_addr)) != 0);
+
                     printf("<Message from Client %s> %s\n",inet_ntoa(remote_addr.sin_addr),input);
                     //accept input into cell                
                     TestInput(grid,currCell.col,currCell.row,input);
@@ -162,16 +204,25 @@ int main(int argc, char *argv[]){
 
 			case 3: //printf("%s",stringGrid(grid));
                     break;
-            case 4: saveWorksheet(grid);
+            case 4: 
+                    if(strcmp(current, inet_ntoa(remote_addr.sin_addr)) == 0){
+                        saveWorksheet(grid);
+                        if(strcmp(clients[cur], "NULL") != 0){
+                            printf("Current Client set to %s.\n", clients[cur]);
+                            current = clients[cur];
+                            cur++;
+                        }
+                    };
                     break;
 			default : break;
 		}
 
-        if (strcmp(buf,"shutdown") == 0){
-
-            break;
+            if(strcmp(buf,"shutdown")==0 && strcmp(current, inet_ntoa(remote_addr.sin_addr)) == 0){
+                    //printf("Sending Shutdown message to %s",inet_ntoa(remote_addr.sin_addr));
+                    strcpy(response,"...SERVER SHUTTING DOWN...");
+                    break;
+            }
         }
-    }
 
     close(sock_recv);
 }

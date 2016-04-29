@@ -1,6 +1,6 @@
 /*
-Author : Andre Vidal
-ID num : 620077449
+Author : Andre Vidal, Xavier Bryson
+ID num : 620077449, 620084236
 Assignment : 1 Part 2
 */
 
@@ -61,7 +61,6 @@ int main(int argc, char *argv[]){
 
         if (strcmp(buf,"quit") == 0){
             break;
-        
         }else{
 
             send_len=strlen(text);
